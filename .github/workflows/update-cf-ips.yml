@@ -20,15 +20,21 @@ jobs:
 
       - name: Fetch and Process IP Lists
         run: |
+          set -euo pipefail
+
           mkdir -p Clash
+
           TIME_STAMP=$(date -u "+%Y-%m-%d %H:%M:%S UTC")
           echo "# Generated: $TIME_STAMP" > Clash/cf_cn_ip.txt
 
-          # Fetch IPv4 and IPv6 lists, keep only CIDR lines, prepend IP-CIDR, and dedupe
-          curl -sS https://www.cloudflare.com/ips-v4 https://www.cloudflare.com/ips-v6 \
-            | grep -E '/[0-9]+' \
-            | sed 's/^/IP-CIDR, /' \
-            | sort -u >> Clash/cf_cn_ip.txt
+          {
+              curl -fsS https://www.cloudflare.com/ips-v4
+              echo
+              curl -fsS https://www.cloudflare.com/ips-v6
+          } \
+          | grep -E '/[0-9]+' \
+          | sed 's/^/IP-CIDR, /' \
+          | sort -u >> Clash/cf_cn_ip.txt
 
       - name: Commit and Push Changes
         run: |
