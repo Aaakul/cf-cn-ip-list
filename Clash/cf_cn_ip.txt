@@ -1,0 +1,5 @@
+# Generated: initial
+# This file is managed by .github/workflows/update-cf-ips.yml
+# The workflow will overwrite this file with up-to-date Cloudflare CIDR entries.
+# Example:
+# IP-CIDR, 173.245.48.0/20

@@ -1,0 +1,46 @@
+name: Auto Update Cloudflare China Mainland IP List
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-ips:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Fetch and Process IP Lists
+        run: |
+          mkdir -p Clash
+          TIME_STAMP=$(date -u "+%Y-%m-%d %H:%M:%S UTC")
+          echo "# Generated: $TIME_STAMP" > Clash/cf_cn_ip.txt
+
+          # Fetch IPv4 and IPv6 lists, keep only CIDR lines, prepend IP-CIDR, and dedupe
+          curl -sS https://www.cloudflare.com/ips-v4 https://www.cloudflare.com/ips-v6 \
+            | grep -E '/[0-9]+' \
+            | sed 's/^/IP-CIDR, /' \
+            | sort -u >> Clash/cf_cn_ip.txt
+
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "bot@users.noreply.github.com"
+
+          git add Clash/cf_cn_ip.txt
+
+          # Only commit if there are changes
+          if git diff --staged --quiet; then
+            echo "No changes in IP list."
+          else
+            git commit -m "chore: auto-update Cloudflare IP list [skip ci]"
+            git push
+          fi
