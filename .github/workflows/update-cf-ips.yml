@@ -1,4 +1,4 @@
-name: Auto Update Cloudflare China Mainland IP List
+name: Update IP List
 
 on:
   schedule:
@@ -11,42 +11,52 @@ permissions:
 jobs:
   update-ips:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Fetch and Process IP Lists
+      - name: Install jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      - name: Fetch data
         run: |
           set -euo pipefail
 
           mkdir -p Clash
+          mkdir -p List
 
-          TIME_STAMP=$(date -u "+%Y-%m-%d %H:%M:%S UTC")
-          echo "# Generated: $TIME_STAMP" > Clash/cf_cn_ip.txt
+          TIMESTAMP=$(date -u "+%Y-%m-%d %H:%M:%S UTC")
+
+          API_RESPONSE=$(curl -fsS \
+            "https://api.cloudflare.com/client/v4/ips?networks=jdcloud")
+
+          IP_LIST=$(echo "$API_RESPONSE" |
+            jq -r '.result.jdcloud_cidrs[]' |
+            sort -u)
+
+          echo "$IP_LIST" > List/cf_cn_ip.txt
 
           {
-              curl -fsS https://www.cloudflare.com/ips-v4
-              echo
-              curl -fsS https://www.cloudflare.com/ips-v6
-          } \
-          | grep -E '/[0-9]+' \
-          | sed 's/^/IP-CIDR, /' \
-          | sort -u >> Clash/cf_cn_ip.txt
+            echo "# Cloudflare China Mainland Network (JD Cloud)"
+            echo "# Generated: $TIMESTAMP"
+            echo "# Source: https://api.cloudflare.com/client/v4/ips?networks=jdcloud"
+            echo "$IP_LIST" | sed 's/^/IP-CIDR,/'
+          } > Clash/cf_cn_ip.txt
 
       - name: Commit and Push Changes
         run: |
           git config --global user.name "github-actions[bot]"
-          git config --global user.email "bot@users.noreply.github.com"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           git add Clash/cf_cn_ip.txt
+          git add List/cf_cn_ip.txt
 
-          # Only commit if there are changes
           if git diff --staged --quiet; then
-            echo "No changes in IP list."
+            echo "No changes."
           else
-            git commit -m "chore: auto-update Cloudflare IP list [skip ci]"
+            git commit -m "chore: update Cloudflare China Mainland Network IP list [skip ci]"
             git push
           fi
