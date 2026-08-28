@@ -1,5 +1,5 @@
 # Cloudflare China Mainland Network (JD Cloud)
-# Generated: 2026-08-27 08:40:00 UTC
+# Generated: 2026-08-28 10:52:07 UTC
 # Source: https://api.cloudflare.com/client/v4/ips?networks=jdcloud
 IP-CIDR,101.69.205.224/27
 IP-CIDR,103.44.252.32/27
